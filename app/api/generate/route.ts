@@ -180,8 +180,24 @@ export async function POST(req: Request) {
 
     let rowCursor = 2;
 
-    function addRowFromTemplate(templateValues: any[], appliedValues: any[], styles: any[]) {
-      const r = ws.getRow(rowCursor++);
+    const addRowFromTemplate = (templateValues: any[], appliedValues: any[], styles: any[]) => {
+  const r = ws.getRow(rowCursor++);
+
+  // força comprimento igual ao template (evita deslocamento)
+  const full = [...templateValues];
+  for (let i = 0; i < appliedValues.length; i++) full[i] = appliedValues[i];
+
+  r.values = full;
+
+  // reaplica estilos
+  if (styles?.length) {
+    for (let i = 0; i < styles.length; i++) {
+      if (styles[i]) r.getCell(i + 1).style = styles[i];
+    }
+  }
+
+  (r as any).commit?.();
+};
 
       // força comprimento igual ao template (evita deslocamento)
       const full = [...templateValues];
