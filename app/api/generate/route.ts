@@ -87,6 +87,7 @@ async function readUploadedXlsx(file: File) {
   return XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
 }
 
+// Substitui tokens em qualquer célula string
 function applyTokens(values: any[], tokens: Record<string, string>) {
   return values.map((v) => {
     if (typeof v !== "string") return v;
@@ -98,19 +99,23 @@ function applyTokens(values: any[], tokens: Record<string, string>) {
   });
 }
 
+/**
+ * ✅ Header -> índice 0-based (A=0, B=1, C=2...)
+ * Observação: ws.getRow(1).values vem 1-based com dummy no [0]
+ */
 function getColIndex(ws: ExcelJS.Worksheet) {
   const headers = ws.getRow(1).values as any[];
   const colIndex: Record<string, number> = {};
   headers.forEach((h, i) => {
-    if (typeof h === "string" && h.trim()) colIndex[h.trim()] = i;
+    if (typeof h === "string" && h.trim()) colIndex[h.trim()] = i - 1; // <- 0-based
   });
   return colIndex;
 }
 
-function setByHeader(values: any[], colIndex: Record<string, number>, header: string, value: any) {
+function setByHeader(values0: any[], colIndex: Record<string, number>, header: string, value: any) {
   const idx = colIndex[header];
-  if (!idx) return;
-  values[idx] = value;
+  if (idx === undefined || idx < 0) return;
+  values0[idx] = value;
 }
 
 export async function POST(req: Request) {
@@ -119,12 +124,14 @@ export async function POST(req: Request) {
     const file = form.get("file") as File | null;
     if (!file) return new NextResponse("Arquivo não enviado.", { status: 400 });
 
+    // colors.json
     const colorsPath = path.join(process.cwd(), "config", "colors.json");
     if (!fs.existsSync(colorsPath)) {
       return new NextResponse("Arquivo config/colors.json não encontrado.", { status: 400 });
     }
     const colors = JSON.parse(fs.readFileSync(colorsPath, "utf8")) as Color[];
 
+    // template
     const templatePath = path.join(process.cwd(), "templates", "PLANILHA PADRÃO BLING.xlsx");
     if (!fs.existsSync(templatePath)) {
       return new NextResponse("Template não encontrado em templates/PLANILHA PADRÃO BLING.xlsx", {
@@ -132,10 +139,9 @@ export async function POST(req: Request) {
       });
     }
 
+    // produtos (upload)
     const products = await readUploadedXlsx(file);
-    if (!products.length) {
-      return new NextResponse("Planilha de entrada vazia.", { status: 400 });
-    }
+    if (!products.length) return new NextResponse("Planilha de entrada vazia.", { status: 400 });
 
     const required = ["Código Pai", "Marca", "Peça", "Estampa", "Cores", "Tamanhos"];
     const missing = required.filter((k) => !(k in (products[0] || {})));
@@ -143,6 +149,7 @@ export async function POST(req: Request) {
       return new NextResponse(`Colunas ausentes na entrada: ${missing.join(", ")}`, { status: 400 });
     }
 
+    // abre template
     const outWb = new ExcelJS.Workbook();
     await outWb.xlsx.readFile(templatePath);
     const ws = outWb.worksheets[0];
@@ -157,31 +164,38 @@ export async function POST(req: Request) {
 
     const colIndex = getColIndex(ws);
 
+    // modelos (IMPORTANTE: slice(1) remove dummy e vira 0-based)
     const baseParentRow = ws.getRow(2);
     const baseVarRow = ws.getRow(3);
 
-    const baseParent = [...(baseParentRow.values as any[])];
-    const baseVar = [...(baseVarRow.values as any[])];
+    const baseParent = (baseParentRow.values as any[]).slice(1);
+    const baseVar = (baseVarRow.values as any[]).slice(1);
 
-    const parentStyle = (baseParentRow as any)._cells?.map((c: any) => c?.style || null) || [];
-    const varStyle = (baseVarRow as any)._cells?.map((c: any) => c?.style || null) || [];
+    // estilos (opcional)
+    const parentStyle =
+      (baseParentRow as any)._cells?.map((c: any) => c?.style || null) || [];
+    const varStyle =
+      (baseVarRow as any)._cells?.map((c: any) => c?.style || null) || [];
 
-    // remove tudo abaixo do header (inclui os modelos)
+    // remove tudo abaixo do header (inclui modelos)
     ws.spliceRows(2, ws.rowCount - 1);
 
     let rowCursor = 2;
 
-    const addRowFromTemplate = (templateValues: any[], appliedValues: any[], styles: any[]) => {
+    // ✅ Inserção correta: row.values no ExcelJS deve ser 1-based ao SETAR.
+    // Então a gente seta com [null, ...full0] (dummy + 0-based values)
+    const addRowFromTemplate = (template0: any[], applied0: any[], styles: any[]) => {
       const r = ws.getRow(rowCursor++);
 
-      // garante mesmo tamanho do template (evita deslocamento)
-      const full = [...templateValues];
-      for (let i = 0; i < appliedValues.length; i++) full[i] = appliedValues[i];
+      const full0 = [...template0];
+      for (let i = 0; i < applied0.length; i++) full0[i] = applied0[i];
 
-      r.values = full;
+      // 1-based para ExcelJS
+      r.values = [null, ...full0];
 
-      // reaplica estilos do modelo
+      // estilos
       if (styles?.length) {
+        // styles é 1-based de cells, então aplica em cell(i+1)
         for (let i = 0; i < styles.length; i++) {
           if (styles[i]) r.getCell(i + 1).style = styles[i];
         }
@@ -214,17 +228,18 @@ export async function POST(req: Request) {
         );
       }
 
-      // PAI
+      // ===== PAI =====
       const parentTokens = { PPPP: codePai, MCC: marca, PECA: peca, ESTAMPA: estampa };
-      let parentVals = applyTokens([...baseParent], parentTokens);
+      let parent0 = applyTokens([...baseParent], parentTokens);
 
-      setByHeader(parentVals, colIndex, "Código", codePai);
-      setByHeader(parentVals, colIndex, "Descrição", `${marca} - ${peca} - ${estampa}`);
-      setByHeader(parentVals, colIndex, "Código Pai", "");
+      // reforço por header
+      setByHeader(parent0, colIndex, "Código", codePai);
+      setByHeader(parent0, colIndex, "Descrição", `${marca} - ${peca} - ${estampa}`);
+      setByHeader(parent0, colIndex, "Código Pai", "");
 
-      addRowFromTemplate(baseParent, parentVals, parentStyle);
+      addRowFromTemplate(baseParent, parent0, parentStyle);
 
-      // VARIAÇÕES
+      // ===== VARIAÇÕES =====
       for (const c of colorsOk) {
         for (const size of sizes) {
           const varTokens = {
@@ -237,12 +252,13 @@ export async function POST(req: Request) {
             TAM: String(size),
           };
 
-          let varVals = applyTokens([...baseVar], varTokens);
+          let var0 = applyTokens([...baseVar], varTokens);
 
-          setByHeader(varVals, colIndex, "Código", `${codePai}-${c.code}-${size}`);
-          setByHeader(varVals, colIndex, "Código Pai", codePai);
+          // reforço por header
+          setByHeader(var0, colIndex, "Código", `${codePai}-${c.code}-${size}`);
+          setByHeader(var0, colIndex, "Código Pai", codePai);
 
-          addRowFromTemplate(baseVar, varVals, varStyle);
+          addRowFromTemplate(baseVar, var0, varStyle);
         }
       }
     }
