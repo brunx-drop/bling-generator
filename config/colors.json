@@ -1,6 +1,99 @@
 [
-  { "name": "Preto", "code": "0001" },
-  { "name": "Off white", "code": "0003" },
+  { "name": "Amarelo Manteiga", "code": "0318" },
+  { "name": "Amarelo Mostarda", "code": "0010" },
+  { "name": "Amarelo Primavera", "code": "0341" },
+  { "name": "Amarelo Provençal", "code": "10051" },
+
+  { "name": "Amêndoa", "code": "0335" },
+  { "name": "Areia", "code": "0110" },
+  { "name": "Argila", "code": "0141" },
+
+  { "name": "Azul", "code": "0038" },
+  { "name": "Azul Ártico", "code": "0338" },
+  { "name": "Azul Caribe", "code": "0291" },
+  { "name": "Azul Céu", "code": "0326" },
+  { "name": "Azul Claro", "code": "0013" },
+  { "name": "Azul Índico", "code": "0319" },
+  { "name": "Azul Marinho", "code": "0014" },
+  { "name": "Azul Marmorizado", "code": "0125" },
+  { "name": "Azul Mirtilo", "code": "0321" },
+  { "name": "Azul Naval", "code": "0247" },
+  { "name": "Azul Petróleo", "code": "0009" },
+  { "name": "Azul Royal", "code": "0126" },
+
+  { "name": "Bege", "code": "0005" },
+  { "name": "Bege Champagne", "code": "0331" },
+  { "name": "Bege Folhagem", "code": "0325" },
+  { "name": "Bege Costeiro", "code": "0351" },
+
+  { "name": "Bordô", "code": "0017" },
+
+  { "name": "Branco", "code": "0002" },
+
+  { "name": "Caqui", "code": "0111" },
+  { "name": "Caramelo", "code": "0189" },
+
   { "name": "Chumbo", "code": "0074" },
-  { "name": "Amarelo Provençal", "code": "10051" }
+
+  { "name": "Cinza", "code": "0039" },
+  { "name": "Cinza Espacial", "code": "0313" },
+  { "name": "Cinza Mescla", "code": "0016" },
+
+  { "name": "Creme", "code": "0129" },
+
+  { "name": "Lilás", "code": "0045" },
+  { "name": "Magenta", "code": "0112" },
+
+  { "name": "Marfim", "code": "0329" },
+
+  { "name": "Marrom", "code": "0004" },
+  { "name": "Marrom Café", "code": "0113" },
+  { "name": "Marrom Chocolate", "code": "0188" },
+  { "name": "Marrom Madeira", "code": "0327" },
+  { "name": "Marrom Monte Carlo", "code": "0348" },
+  { "name": "Marrom Terracota", "code": "0323" },
+
+  { "name": "Menta", "code": "0066" },
+
+  { "name": "Mescla Grafite", "code": "0248" },
+  { "name": "Mescla Névoa", "code": "0249" },
+
+  { "name": "Mocha Mousse", "code": "0340" },
+
+  { "name": "Off White", "code": "0003" },
+  { "name": "Off Lumiére", "code": "0347" },
+
+  { "name": "Preto", "code": "0001" },
+  { "name": "Preto Estonado", "code": "0144" },
+  { "name": "Preto Mônaco", "code": "0345" },
+  { "name": "Preto Marmorizado", "code": "0186" },
+
+  { "name": "Rosa Choque", "code": "0330" },
+  { "name": "Rosa Claro", "code": "0007" },
+  { "name": "Rosa Crepe", "code": "0339" },
+  { "name": "Rosa Coral", "code": "0356" },
+  { "name": "Rosa Pink", "code": "0022" },
+
+  { "name": "Roxo", "code": "0006" },
+
+  { "name": "Salmão", "code": "0018" },
+
+  { "name": "Telha", "code": "0185" },
+
+  { "name": "Verde Abacate", "code": "0187" },
+  { "name": "Verde Água", "code": "0139" },
+  { "name": "Verde Atlântico", "code": "0320" },
+  { "name": "Verde Esmeralda", "code": "0137" },
+  { "name": "Verde Floresta", "code": "0105" },
+  { "name": "Verde Juventude", "code": "0283" },
+  { "name": "Verde Militar", "code": "0138" },
+  { "name": "Verde Musgo", "code": "0071" },
+  { "name": "Verde Oliva", "code": "0008" },
+  { "name": "Verde Petróleo", "code": "0036" },
+  { "name": "Verde Pistache", "code": "0324" },
+  { "name": "Verde Quartzo", "code": "0337" },
+  { "name": "Verde Stone", "code": "0084" },
+
+  { "name": "Vermelho", "code": "0015" },
+  { "name": "Vermelho Crepúsculo", "code": "0328" }
 ]
