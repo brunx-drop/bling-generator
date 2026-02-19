@@ -4,6 +4,8 @@
   { "name": "Amarelo Primavera", "code": "0341" },
   { "name": "Amarelo Provençal", "code": "10051" },
 
+  { "name": "Sem Cor", "code": "1111" },
+
   { "name": "Amêndoa", "code": "0335" },
   { "name": "Areia", "code": "0110" },
   { "name": "Argila", "code": "0141" },
