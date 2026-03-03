@@ -34,7 +34,8 @@
   { "name": "Bordô", "code": "0017" },
 
   { "name": "Branco", "code": "0002" },
-
+  
+  { "name": "Café", "code": "0113" },
   { "name": "Caqui", "code": "0111" },
   { "name": "Caramelo", "code": "0189" },
 
