@@ -25,6 +25,7 @@
   { "name": "Azul Petróleo", "code": "0009" },
   { "name": "Azul Royal", "code": "0126" },
   { "name": "Azul Dusty", "code": "0352" },
+  { "name": "Azul Stone", "code": "0079" },
 
   { "name": "Bege", "code": "0005" },
   { "name": "Bege Champagne", "code": "0331" },
@@ -60,6 +61,7 @@
   { "name": "Marrom Madeira", "code": "0327" },
   { "name": "Marrom Monte Carlo", "code": "0348" },
   { "name": "Marrom Terracota", "code": "0323" },
+  { "name": "Marrom Reativo", "code": "10059" },
 
   { "name": "Marinho Profundo", "code": "10049" },
 
@@ -77,6 +79,7 @@
   { "name": "Preto Estonado", "code": "0144" },
   { "name": "Preto Mônaco", "code": "0345" },
   { "name": "Preto Marmorizado", "code": "0186" },
+  { "name": "Preto Reativo", "code": "0047" },
 
   { "name": "Rosa Choque", "code": "0330" },
   { "name": "Rosa Claro", "code": "0007" },
@@ -84,6 +87,7 @@
   { "name": "Rosa Coral", "code": "0356" },
   { "name": "Rosa Pink", "code": "0022" },
   { "name": "Rosa Riviera", "code": "10052" },
+  { "name": "Rosa Stone", "code": "10058" },
 
   { "name": "Roxo", "code": "0006" },
 
