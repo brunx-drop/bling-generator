@@ -3,6 +3,7 @@
   { "name": "Amarelo Mostarda", "code": "0010" },
   { "name": "Amarelo Primavera", "code": "0341" },
   { "name": "Amarelo Provençal", "code": "10051" },
+  { "name": "Amarelo", "code": "0703" },
 
   { "name": "Sem Cor", "code": "1111" },
 
@@ -98,6 +99,7 @@
   { "name": "Verde Abacate", "code": "0187" },
   { "name": "Verde Água", "code": "0139" },
   { "name": "Verde Atlântico", "code": "0320" },
+  { "name": "Verde Bandeira", "code": "0075" },
   { "name": "Verde Cipestre", "code": "10048" },
   { "name": "Verde Esmeralda", "code": "0137" },
   { "name": "Verde Floresta", "code": "0105" },
