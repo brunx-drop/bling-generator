@@ -313,7 +313,7 @@ function getPartFileName(index: number) {
   return `BLING_IMPORT_parte_${String(index + 1).padStart(2, "0")}.xlsx`;
 }
 
-function bufferToBase64(buffer: ExcelJS.Buffer) {
+function bufferToBase64(buffer: Buffer | ArrayBuffer | Uint8Array) {
   return Buffer.from(buffer).toString("base64");
 }
 
