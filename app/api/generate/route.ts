@@ -40,7 +40,6 @@ type ProductBlock = {
 
 type RowStyleTemplate = {
   height?: number;
-  style: Partial<ExcelJS.Style>;
   cells: Partial<ExcelJS.Style>[];
 };
 
