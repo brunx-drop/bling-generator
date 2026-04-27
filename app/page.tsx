@@ -3,15 +3,12 @@
 import { useState } from "react";
 
 /**
- * v1.1
+ * v1.2
  *
- * Alteração principal:
- * - Quando o backend retorna uma planilha única, baixa BLING_IMPORT.xlsx.
- * - Quando o backend retorna múltiplas partes, baixa cada .xlsx em sequência:
- *   BLING_IMPORT_parte_01.xlsx
- *   BLING_IMPORT_parte_02.xlsx
- *   BLING_IMPORT_parte_03.xlsx
- * - Não usa ZIP.
+ * Alterações:
+ * - Retorna o visual simples/original da página, sem CSS extra.
+ * - Mantém suporte para baixar múltiplos arquivos em sequência quando a geração
+ *   passar de 1.000 linhas.
  */
 
 type GeneratedFile = {
@@ -93,10 +90,7 @@ export default function Home() {
   const [msg, setMsg] = useState("");
 
   async function handleGenerate() {
-    if (!file) {
-      setMsg("Selecione uma planilha antes de gerar.");
-      return;
-    }
+    if (!file) return;
 
     setLoading(true);
     setMsg("");
@@ -127,7 +121,7 @@ export default function Home() {
 
         await downloadFilesInSequence(data.files);
 
-        setMsg(`Gerado com sucesso ✅ ${data.totalParts} arquivos baixados em partes.`);
+        setMsg(`Gerado com sucesso ✅ ${data.totalParts} arquivos baixados.`);
         return;
       }
 
@@ -146,83 +140,25 @@ export default function Home() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: 32,
-        fontFamily: "Arial, sans-serif",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f5f5f5",
-      }}
-    >
-      <section
-        style={{
-          width: "100%",
-          maxWidth: 560,
-          padding: 32,
-          borderRadius: 16,
-          background: "#ffffff",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h1 style={{ marginTop: 0, marginBottom: 12 }}>Gerador de Planilha Bling</h1>
+    <main>
+      <h1>Gerador de Planilha Bling</h1>
 
-        <p style={{ marginTop: 0, marginBottom: 24, color: "#555", lineHeight: 1.5 }}>
-          Envie o Excel no padrão de entrada com as colunas Código Pai, Marca, Peça,
-          Estampa, Cores e Tamanhos. Se a planilha final passar de 1.000 linhas,
-          o sistema divide automaticamente em arquivos separados sem quebrar a
-          estrutura de produto pai e variações.
-        </p>
+      <p>Envie o Excel no padrão de entrada (Código Pai, Marca, Peça, Estampa, Cores, Tamanhos).</p>
 
-        <input
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          style={{
-            display: "block",
-            width: "100%",
-            marginBottom: 20,
-          }}
-        />
+      <input
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+      />
 
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={!file || loading}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            border: 0,
-            borderRadius: 10,
-            background: !file || loading ? "#999" : "#111",
-            color: "#fff",
-            fontWeight: 700,
-            cursor: !file || loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading ? "Gerando..." : "Gerar planilha Bling"}
-        </button>
+      <br />
+      <br />
 
-        {msg && (
-          <p
-            style={{
-              marginTop: 20,
-              marginBottom: 0,
-              color: msg.includes("sucesso") ? "#0a7a2f" : "#b00020",
-              fontWeight: 600,
-            }}
-          >
-            {msg}
-          </p>
-        )}
+      <button type="button" onClick={handleGenerate} disabled={!file || loading}>
+        {loading ? "Gerando..." : "Gerar planilha Bling"}
+      </button>
 
-        <p style={{ marginTop: 18, marginBottom: 0, color: "#777", fontSize: 13, lineHeight: 1.4 }}>
-          Observação: se o navegador pedir permissão para baixar vários arquivos,
-          clique em permitir.
-        </p>
-      </section>
+      {msg && <p>{msg}</p>}
     </main>
   );
 }
