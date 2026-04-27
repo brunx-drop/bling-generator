@@ -7,16 +7,21 @@ import * as XLSX from "xlsx";
 export const runtime = "nodejs";
 
 /**
- * v1.1
+ * v1.2
  *
- * Alteração principal:
- * - Quando a planilha final passa de 1.000 linhas, o sistema divide automaticamente
- *   em partes de no máximo 1.000 linhas totais por arquivo.
- * - A divisão respeita blocos completos:
- *   Produto Pai + todos os Produtos Filhos/Variações.
- * - Nunca corta um produto pai no meio das variações.
- * - Não usa ZIP. Quando houver múltiplas partes, retorna JSON com os arquivos em base64
- *   para o frontend baixar um por um.
+ * Alterações:
+ * - Divide automaticamente a planilha final quando passar de 1.000 linhas totais.
+ * - Cada arquivo gerado fica com no máximo 1.000 linhas totais.
+ * - Respeita blocos completos de Produto Pai + Produtos Filhos/Variações.
+ * - Não corta produtos no meio.
+ * - Não usa ZIP.
+ * - Remove os hífens do código/SKU da variação.
+ *
+ * Exemplo antigo:
+ *   1234-05-M
+ *
+ * Exemplo novo:
+ *   123405M
  */
 
 type Color = {
@@ -221,7 +226,17 @@ function buildProductBlocks(
           TAM: size,
         });
 
-        variation[1] = `${codePai}-${c.code}-${size}`;
+        /**
+         * Código/SKU da variação sem hífens.
+         *
+         * Antes:
+         *   `${codePai}-${c.code}-${size}`
+         *
+         * Agora:
+         *   `${codePai}${c.code}${size}`
+         */
+        variation[1] = `${codePai}${c.code}${size}`;
+
         variation[2] = `Cor:${c.name};Tamanho:${size}`;
 
         rows.push({
