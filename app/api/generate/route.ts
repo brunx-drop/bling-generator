@@ -3,9 +3,21 @@ import path from "path";
 import fs from "fs";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
-import JSZip from "jszip";
 
 export const runtime = "nodejs";
+
+/**
+ * v1.1
+ *
+ * Alteração principal:
+ * - Quando a planilha final passa de 1.000 linhas, o sistema divide automaticamente
+ *   em partes de no máximo 1.000 linhas totais por arquivo.
+ * - A divisão respeita blocos completos:
+ *   Produto Pai + todos os Produtos Filhos/Variações.
+ * - Nunca corta um produto pai no meio das variações.
+ * - Não usa ZIP. Quando houver múltiplas partes, retorna JSON com os arquivos em base64
+ *   para o frontend baixar um por um.
+ */
 
 type Color = {
   name: string;
@@ -205,19 +217,19 @@ function buildProductBlocks(
 
     for (const c of cores) {
       for (const size of sizes) {
-        const v = applyTokens([...varTemplate], {
+        const variation = applyTokens([...varTemplate], {
           PPPP: codePai,
           XXXX: c.code,
           CCCC: c.name,
           TAM: size,
         });
 
-        v[1] = `${codePai}-${c.code}-${size}`;
-        v[2] = `Cor:${c.name};Tamanho:${size}`;
+        variation[1] = `${codePai}-${c.code}-${size}`;
+        variation[2] = `Cor:${c.name};Tamanho:${size}`;
 
         rows.push({
           type: "variation",
-          values: v,
+          values: variation,
         });
       }
     }
@@ -301,6 +313,10 @@ function getPartFileName(index: number) {
   return `BLING_IMPORT_parte_${String(index + 1).padStart(2, "0")}.xlsx`;
 }
 
+function bufferToBase64(buffer: ExcelJS.Buffer) {
+  return Buffer.from(buffer).toString("base64");
+}
+
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
@@ -338,22 +354,30 @@ export async function POST(req: Request) {
       });
     }
 
-    const zip = new JSZip();
+    const files = [];
 
     for (let i = 0; i < parts.length; i++) {
       const buffer = await createWorkbookBuffer(templatePath, parts[i]);
-      zip.file(getPartFileName(i), Buffer.from(buffer));
+
+      files.push({
+        fileName: getPartFileName(i),
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        base64: bufferToBase64(buffer),
+      });
     }
 
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
-
-    return new NextResponse(zipBuffer, {
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": 'attachment; filename="BLING_IMPORT_PARTES.zip"',
-        "X-Bling-Parts": String(parts.length),
+    return NextResponse.json(
+      {
+        multiple: true,
+        totalParts: files.length,
+        files,
       },
-    });
+      {
+        headers: {
+          "X-Bling-Parts": String(files.length),
+        },
+      }
+    );
   } catch (err: any) {
     console.error(err);
 
