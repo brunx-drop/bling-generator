@@ -310,8 +310,8 @@ function getPartFileName(index: number) {
   return `BLING_IMPORT_parte_${String(index + 1).padStart(2, "0")}.xlsx`;
 }
 
-function bufferToBase64(buffer: Buffer | ArrayBuffer | Uint8Array) {
-  return Buffer.from(buffer).toString("base64");
+function bufferToBase64(buffer: unknown) {
+  return Buffer.from(buffer as any).toString("base64");
 }
 
 export async function POST(req: Request) {
@@ -342,7 +342,7 @@ export async function POST(req: Request) {
     if (parts.length === 1) {
       const buffer = await createWorkbookBuffer(templatePath, parts[0]);
 
-      return new NextResponse(Buffer.from(buffer), {
+      return new NextResponse(Buffer.from(buffer as any), {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": 'attachment; filename="BLING_IMPORT.xlsx"',
