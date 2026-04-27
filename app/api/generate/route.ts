@@ -158,14 +158,12 @@ function captureRowStyle(row: ExcelJS.Row, columnCount: number): RowStyleTemplat
 
   return {
     height: row.height,
-    style: cloneStyle(row.style),
     cells,
   };
 }
 
 function applyRowStyle(row: ExcelJS.Row, template: RowStyleTemplate, columnCount: number) {
   row.height = template.height;
-  row.style = cloneStyle(template.style);
 
   for (let col = 1; col <= columnCount; col++) {
     row.getCell(col).style = cloneStyle(template.cells[col]);
