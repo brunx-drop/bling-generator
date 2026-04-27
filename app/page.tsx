@@ -60,7 +60,7 @@ function base64ToBlob(base64: string, contentType: string) {
     byteArrays.push(new Uint8Array(byteNumbers));
   }
 
-  return new Blob(byteArrays, { type: contentType });
+  return new Blob(byteArrays as BlobPart[], { type: contentType });
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
