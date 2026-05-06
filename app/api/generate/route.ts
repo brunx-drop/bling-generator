@@ -7,6 +7,15 @@ import * as XLSX from "xlsx";
 export const runtime = "nodejs";
 
 /**
+ * v1.3
+ *
+ * Correção principal:
+ * - Ajusta a dinâmica do SKU das variações.
+ * - Antes: CódigoPai-CódigoCor-Tamanho
+ *   Exemplo: 684172-0001-P
+ * - Agora: CódigoPaiCódigoCorTamanho
+ *   Exemplo: 6841720001P
+ *
  * v1.2
  *
  * Correções principais:
@@ -76,6 +85,22 @@ function norm(s: string) {
 
 function isBlankValue(value: any) {
   return String(value ?? "").trim() === "";
+}
+
+/**
+ * Monta o SKU final da variação.
+ *
+ * Regra v1.3:
+ * SKU = Código Pai + Código da Cor + Tamanho
+ *
+ * Exemplo:
+ * Código Pai: 684172
+ * Código Cor: 0001
+ * Tamanho: P
+ * SKU final: 6841720001P
+ */
+function buildVariationSku(codePai: string, colorCode: string, size: string) {
+  return `${String(codePai).trim()}${String(colorCode).trim()}${String(size).trim()}`;
 }
 
 /**
@@ -285,7 +310,17 @@ function buildProductBlocks(
           TAM: size,
         });
 
-        variation[1] = `${codePai}-${c.code}-${size}`;
+        /**
+         * v1.3
+         *
+         * SKU sem hífen:
+         * Código Pai + Código da Cor + Tamanho
+         *
+         * Exemplo:
+         * 684172 + 0001 + P = 6841720001P
+         */
+        variation[1] = buildVariationSku(codePai, c.code, size);
+
         variation[2] = `Cor:${c.name};Tamanho:${size}`;
 
         rows.push({
