@@ -9,19 +9,23 @@ export const runtime = "nodejs";
 /**
  * v1.2
  *
- * Alterações:
- * - Divide automaticamente a planilha final quando passar de 1.000 linhas totais.
- * - Cada arquivo gerado fica com no máximo 1.000 linhas totais.
- * - Respeita blocos completos de Produto Pai + Produtos Filhos/Variações.
- * - Não corta produtos no meio.
- * - Não usa ZIP.
- * - Remove os hífens do código/SKU da variação.
+ * Correções principais:
+ * - Filtra linhas vazias da planilha de entrada antes de gerar os produtos.
+ * - Ignora lixo invisível em colunas fora do padrão, como espaços em H5, I20 etc.
+ * - Mantém erro de "produto sem Código Pai" apenas quando a linha tem dados reais
+ *   nas colunas esperadas, mas o Código Pai está vazio.
+ * - Adiciona headers de no-store para reduzir risco de cache no navegador/Vercel.
  *
- * Exemplo antigo:
- *   1234-05-M
+ * v1.1
  *
- * Exemplo novo:
- *   123405M
+ * Alteração principal:
+ * - Quando a planilha final passa de 1.000 linhas, o sistema divide automaticamente
+ *   em partes de no máximo 1.000 linhas totais por arquivo.
+ * - A divisão respeita blocos completos:
+ *   Produto Pai + todos os Produtos Filhos/Variações.
+ * - Nunca corta um produto pai no meio das variações.
+ * - Não usa ZIP. Quando houver múltiplas partes, retorna JSON com os arquivos
+ *   em base64 para o frontend baixar um por um.
  */
 
 type Color = {
@@ -52,6 +56,15 @@ const MAX_ROWS_PER_FILE = 1000;
 const HEADER_ROWS_PER_FILE = 1;
 const MAX_DATA_ROWS_PER_FILE = MAX_ROWS_PER_FILE - HEADER_ROWS_PER_FILE;
 
+const INPUT_COLUMNS = [
+  "Código Pai",
+  "Marca",
+  "Peça",
+  "Estampa",
+  "Cores",
+  "Tamanhos",
+] as const;
+
 function norm(s: string) {
   return String(s || "")
     .trim()
@@ -59,6 +72,30 @@ function norm(s: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/\s+/g, " ");
+}
+
+function isBlankValue(value: any) {
+  return String(value ?? "").trim() === "";
+}
+
+/**
+ * Filtra linhas vazias reais da planilha de entrada.
+ *
+ * Importante:
+ * O Excel/XLSX pode considerar linhas como "usadas" quando existe um espaço,
+ * formatação antiga ou sujeira em colunas fora do padrão, por exemplo H5.
+ *
+ * Por isso, aqui olhamos somente as colunas oficiais da entrada:
+ * Código Pai, Marca, Peça, Estampa, Cores e Tamanhos.
+ *
+ * - Linha 100% vazia nessas colunas: ignora.
+ * - Linha com Marca/Peça/Cores/etc., mas sem Código Pai: mantém para a validação
+ *   mostrar o erro correto.
+ */
+function removeEmptyInputRows(rows: ProductRow[]) {
+  return rows.filter((row) => {
+    return INPUT_COLUMNS.some((columnName) => !isBlankValue(row[columnName]));
+  });
 }
 
 function parseSizes(raw: string) {
@@ -86,7 +123,21 @@ function parseSizes(raw: string) {
       return arr;
     }
 
-    const adult = ["PP", "P", "M", "G", "GG", "XG", "G2", "G3", "G4", "G5", "G6", "G7"];
+    const adult = [
+      "PP",
+      "P",
+      "M",
+      "G",
+      "GG",
+      "XG",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7",
+    ];
+
     const ia = adult.indexOf(a.toUpperCase());
     const ib = adult.indexOf(b.toUpperCase());
 
@@ -131,7 +182,11 @@ async function readUploadedXlsx(file: File) {
   const wb = XLSX.read(buf, { type: "buffer" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
 
-  return XLSX.utils.sheet_to_json<ProductRow>(sheet, { defval: "" });
+  const rawRows = XLSX.utils.sheet_to_json<ProductRow>(sheet, {
+    defval: "",
+  });
+
+  return removeEmptyInputRows(rawRows);
 }
 
 function applyTokens(values: any[], tokens: Record<string, any>) {
@@ -167,7 +222,11 @@ function captureRowStyle(row: ExcelJS.Row, columnCount: number): RowStyleTemplat
   };
 }
 
-function applyRowStyle(row: ExcelJS.Row, template: RowStyleTemplate, columnCount: number) {
+function applyRowStyle(
+  row: ExcelJS.Row,
+  template: RowStyleTemplate,
+  columnCount: number
+) {
   row.height = template.height;
 
   for (let col = 1; col <= columnCount; col++) {
@@ -189,15 +248,15 @@ function buildProductBlocks(
     const peca = p["Peça"];
     const estampa = p["Estampa"];
 
+    if (!codePai) {
+      throw new Error("Existe produto sem Código Pai na planilha de entrada.");
+    }
+
     const sizes = parseSizes(p["Tamanhos"]);
     const { out: cores, unknown } = parseColors(p["Cores"], colors);
 
     if (unknown.length) {
       throw new Error(`Cores inválidas: ${unknown.join(", ")}`);
-    }
-
-    if (!codePai) {
-      throw new Error("Existe produto sem Código Pai na planilha de entrada.");
     }
 
     const rows: GeneratedRow[] = [];
@@ -226,17 +285,7 @@ function buildProductBlocks(
           TAM: size,
         });
 
-        /**
-         * Código/SKU da variação sem hífens.
-         *
-         * Antes:
-         *   `${codePai}-${c.code}-${size}`
-         *
-         * Agora:
-         *   `${codePai}${c.code}${size}`
-         */
-        variation[1] = `${codePai}${c.code}${size}`;
-
+        variation[1] = `${codePai}-${c.code}-${size}`;
         variation[2] = `Cor:${c.name};Tamanho:${size}`;
 
         rows.push({
@@ -265,7 +314,7 @@ function splitBlocksIntoParts(blocks: ProductBlock[]) {
 
     if (blockRows > MAX_DATA_ROWS_PER_FILE) {
       throw new Error(
-        `O produto pai ${block.codePai} sozinho gera ${blockRows} linhas. ` +
+        `O produto pai ${block.codePai} sozinho gera ${blockRows} linhas.\n` +
           `Isso passa do limite de ${MAX_ROWS_PER_FILE} linhas por arquivo e não pode ser dividido sem quebrar a estrutura pai/filhos.`
       );
     }
@@ -329,25 +378,49 @@ function bufferToBase64(buffer: unknown) {
   return Buffer.from(buffer as any).toString("base64");
 }
 
+function noStoreHeaders(extraHeaders: Record<string, string> = {}) {
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    ...extraHeaders,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
     const file = form.get("file") as File;
 
     if (!file) {
-      return new NextResponse("Arquivo não enviado", { status: 400 });
+      return new NextResponse("Arquivo não enviado", {
+        status: 400,
+        headers: noStoreHeaders(),
+      });
     }
 
     const colorsPath = path.join(process.cwd(), "config/colors.json");
-    const templatePath = path.join(process.cwd(), "templates/PLANILHA PADRÃO BLING.xlsx");
+    const templatePath = path.join(
+      process.cwd(),
+      "templates/PLANILHA PADRÃO BLING.xlsx"
+    );
 
     const colors = JSON.parse(fs.readFileSync(colorsPath, "utf8")) as Color[];
     const products = await readUploadedXlsx(file);
 
+    if (!products.length) {
+      return new NextResponse("A planilha de entrada não possui produtos válidos.", {
+        status: 400,
+        headers: noStoreHeaders(),
+      });
+    }
+
     const templateWb = new ExcelJS.Workbook();
+
     await templateWb.xlsx.readFile(templatePath);
 
     const templateWs = templateWb.worksheets[0];
+
     const parentTemplate = (templateWs.getRow(2).values as any[]).slice(1);
     const varTemplate = (templateWs.getRow(3).values as any[]).slice(1);
 
@@ -358,11 +431,12 @@ export async function POST(req: Request) {
       const buffer = await createWorkbookBuffer(templatePath, parts[0]);
 
       return new NextResponse(Buffer.from(buffer as any), {
-        headers: {
-          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers: noStoreHeaders({
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": 'attachment; filename="BLING_IMPORT.xlsx"',
           "X-Bling-Parts": "1",
-        },
+        }),
       });
     }
 
@@ -373,7 +447,8 @@ export async function POST(req: Request) {
 
       files.push({
         fileName: getPartFileName(i),
-        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        contentType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         base64: bufferToBase64(buffer),
       });
     }
@@ -385,14 +460,17 @@ export async function POST(req: Request) {
         files,
       },
       {
-        headers: {
+        headers: noStoreHeaders({
           "X-Bling-Parts": String(files.length),
-        },
+        }),
       }
     );
   } catch (err: any) {
     console.error(err);
 
-    return new NextResponse(err.message || "Erro interno", { status: 500 });
+    return new NextResponse(err.message || "Erro interno", {
+      status: 500,
+      headers: noStoreHeaders(),
+    });
   }
 }
