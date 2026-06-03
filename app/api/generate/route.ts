@@ -90,17 +90,27 @@ function isBlankValue(value: any) {
 /**
  * Monta o SKU final da variação.
  *
- * Regra v1.3:
- * SKU = Código Pai + Código da Cor + Tamanho
+ * Regra v1.4:
+ * SKU = Código Pai + Código da Cor + Tamanho tratado para SKU
  *
- * Exemplo:
+ * Alteração:
+ * - Quando o tamanho for "Único", o SKU deve usar "0".
+ *
+ * Exemplos:
  * Código Pai: 684172
  * Código Cor: 0001
  * Tamanho: P
  * SKU final: 6841720001P
+ *
+ * Código Pai: 684172
+ * Código Cor: 0001
+ * Tamanho: Único
+ * SKU final: 68417200010
  */
 function buildVariationSku(codePai: string, colorCode: string, size: string) {
-  return `${String(codePai).trim()}${String(colorCode).trim()}${String(size).trim()}`;
+  const skuSize = norm(size) === "unico" ? "0" : String(size).trim();
+
+  return `${String(codePai).trim()}${String(colorCode).trim()}${skuSize}`;
 }
 
 /**
