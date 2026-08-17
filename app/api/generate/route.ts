@@ -7,6 +7,30 @@ import * as XLSX from "xlsx";
 export const runtime = "nodejs";
 
 /**
+ * v1.5
+ *
+ * Alterações principais:
+ * - Adiciona suporte a faixas de tamanhos agrupados:
+ *   Exemplo: 33/34 ao 43/44
+ *   Resultado: 33/34, 35/36, 37/38, 39/40, 41/42, 43/44
+ * - Adiciona suporte a faixas decimais em passos de 0.25:
+ *   Exemplo: 8.0 ao 8.5
+ *   Resultado: 8.0, 8.25, 8.5
+ * - Mantém suporte a faixas numéricas tradicionais em passos de 2:
+ *   Exemplo: 36 ao 50
+ *   Resultado: 36, 38, 40, 42, 44, 46, 48, 50
+ * - Ajusta o tamanho usado no SKU:
+ *   33/34 -> 3334
+ *   8.0 -> 80
+ *   8.25 -> 825
+ *   8.5 -> 85
+ * - O texto exibido da variação continua preservando o tamanho original.
+ *
+ * v1.4
+ *
+ * Alteração principal:
+ * - Quando o tamanho for "Único", o SKU usa "0".
+ *
  * v1.3
  *
  * Correção principal:
@@ -88,19 +112,51 @@ function isBlankValue(value: any) {
 }
 
 /**
+ * Trata o tamanho especificamente para composição do SKU.
+ *
+ * Regra v1.5:
+ * - "Único" -> "0"
+ * - Remove "/" de tamanhos agrupados:
+ *   33/34 -> 3334
+ * - Remove "." de tamanhos decimais:
+ *   8.0 -> 80
+ *   8.25 -> 825
+ *   8.5 -> 85
+ * - Tamanhos alfabéticos continuam iguais:
+ *   P -> P
+ *   GG -> GG
+ *   XG -> XG
+ *
+ * Importante:
+ * O valor visual da variação não é alterado.
+ * A limpeza acontece somente na montagem do SKU.
+ */
+function normalizeSizeForSku(size: string) {
+  const rawSize = String(size ?? "").trim();
+
+  if (norm(rawSize) === "unico") {
+    return "0";
+  }
+
+  return rawSize.replace(/[/.]/g, "");
+}
+
+/**
  * Monta o SKU final da variação.
  *
- * Regra v1.4:
+ * Regra v1.5:
  * SKU = Código Pai + Código da Cor + Tamanho tratado para SKU
  *
- * Alteração:
- * - Quando o tamanho for "Único", o SKU deve usar "0".
- *
  * Exemplos:
- * Código Pai: 684172
+ * Código Pai: 85990003
  * Código Cor: 0001
- * Tamanho: P
- * SKU final: 6841720001P
+ * Tamanho: 33/34
+ * SKU final: 8599000300013334
+ *
+ * Código Pai: 85990006
+ * Código Cor: 0000
+ * Tamanho: 8.25
+ * SKU final: 859900060000825
  *
  * Código Pai: 684172
  * Código Cor: 0001
@@ -108,7 +164,7 @@ function isBlankValue(value: any) {
  * SKU final: 68417200010
  */
 function buildVariationSku(codePai: string, colorCode: string, size: string) {
-  const skuSize = norm(size) === "unico" ? "0" : String(size).trim();
+  const skuSize = normalizeSizeForSku(size);
 
   return `${String(codePai).trim()}${String(colorCode).trim()}${skuSize}`;
 }
@@ -133,6 +189,42 @@ function removeEmptyInputRows(rows: ProductRow[]) {
   });
 }
 
+/**
+ * Converte o campo "Tamanhos" da planilha em uma lista de variações.
+ *
+ * Formatos suportados:
+ *
+ * 1) Vazio
+ *    -> ["Único"]
+ *
+ * 2) Único
+ *    -> ["Único"]
+ *
+ * 3) Lista separada por vírgulas
+ *    Exemplo:
+ *    33/34, 35/36, 37/38
+ *    -> ["33/34", "35/36", "37/38"]
+ *
+ * 4) Faixa numérica tradicional em passos de 2
+ *    Exemplo:
+ *    36 ao 50
+ *    -> ["36", "38", "40", "42", "44", "46", "48", "50"]
+ *
+ * 5) Faixa agrupada
+ *    Exemplo:
+ *    33/34 ao 43/44
+ *    -> ["33/34", "35/36", "37/38", "39/40", "41/42", "43/44"]
+ *
+ * 6) Faixa decimal em passos de 0.25
+ *    Exemplo:
+ *    8.0 ao 8.5
+ *    -> ["8.0", "8.25", "8.5"]
+ *
+ * 7) Faixa alfabética adulta
+ *    Exemplo:
+ *    P ao GG
+ *    -> ["P", "M", "G", "GG"]
+ */
 function parseSizes(raw: string) {
   const t = String(raw || "").trim();
 
@@ -142,12 +234,115 @@ function parseSizes(raw: string) {
 
   if (n === "unico" || n === "único") return ["Único"];
 
+  /**
+   * Lista explícita separada por vírgulas.
+   *
+   * Exemplos:
+   * 33/34,35/36,37/38
+   * 8.0,8.25,8.5
+   * 36,38,40,42
+   */
+  if (t.includes(",")) {
+    return t
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
   const m = t.match(/^(.+?)\s+ao\s+(.+)$/i);
 
   if (m) {
     const a = m[1].trim();
     const b = m[2].trim();
 
+    /**
+     * Faixa agrupada:
+     * 33/34 ao 43/44
+     */
+    const pairA = a.match(/^(\d+)\/(\d+)$/);
+    const pairB = b.match(/^(\d+)\/(\d+)$/);
+
+    if (pairA && pairB) {
+      const a1 = Number(pairA[1]);
+      const a2 = Number(pairA[2]);
+      const b1 = Number(pairB[1]);
+      const b2 = Number(pairB[2]);
+
+      const isSequentialPair =
+        a2 === a1 + 1 &&
+        b2 === b1 + 1 &&
+        b1 >= a1 &&
+        (b1 - a1) % 2 === 0;
+
+      if (isSequentialPair) {
+        const arr: string[] = [];
+
+        for (let x = a1; x <= b1; x += 2) {
+          arr.push(`${x}/${x + 1}`);
+        }
+
+        return arr;
+      }
+    }
+
+    /**
+     * Faixa decimal em passos de 0.25:
+     * 8.0 ao 8.5
+     *
+     * Pelo menos um dos lados precisa conter ponto decimal,
+     * para não interferir na regra dos tamanhos inteiros.
+     */
+    const isDecimalRange =
+      /^\d+(?:\.\d+)?$/.test(a) &&
+      /^\d+(?:\.\d+)?$/.test(b) &&
+      (a.includes(".") || b.includes("."));
+
+    if (isDecimalRange) {
+      const start = Number(a);
+      const end = Number(b);
+
+      if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+        const arr: string[] = [];
+
+        /**
+         * Trabalhamos em quartos para evitar erros de ponto flutuante.
+         *
+         * 8.00 -> 32 quartos
+         * 8.25 -> 33 quartos
+         * 8.50 -> 34 quartos
+         */
+        const startQuarter = Math.round(start * 4);
+        const endQuarter = Math.round(end * 4);
+
+        for (let q = startQuarter; q <= endQuarter; q++) {
+          const value = q / 4;
+
+          /**
+           * Mantém uma casa decimal quando o valor for inteiro ou meio:
+           * 8 -> 8.0
+           * 8.5 -> 8.5
+           *
+           * Mantém duas casas quando for quarto:
+           * 8.25 -> 8.25
+           * 8.75 -> 8.75
+           */
+          if (Number.isInteger(value)) {
+            arr.push(value.toFixed(1));
+          } else if (Number.isInteger(value * 2)) {
+            arr.push(value.toFixed(1));
+          } else {
+            arr.push(value.toFixed(2));
+          }
+        }
+
+        return arr;
+      }
+    }
+
+    /**
+     * Faixa numérica inteira tradicional em passos de 2:
+     * 36 ao 50
+     */
     if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
       const arr: string[] = [];
 
@@ -158,6 +353,10 @@ function parseSizes(raw: string) {
       return arr;
     }
 
+    /**
+     * Faixa alfabética adulta:
+     * PP ao G7
+     */
     const adult = [
       "PP",
       "P",
@@ -176,16 +375,9 @@ function parseSizes(raw: string) {
     const ia = adult.indexOf(a.toUpperCase());
     const ib = adult.indexOf(b.toUpperCase());
 
-    if (ia !== -1 && ib !== -1) {
+    if (ia !== -1 && ib !== -1 && ib >= ia) {
       return adult.slice(ia, ib + 1);
     }
-  }
-
-  if (t.includes(",")) {
-    return t
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean);
   }
 
   return [t];
