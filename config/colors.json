@@ -8,6 +8,8 @@
 
   { "name": "Sem Cor", "code": "1111" },
 
+  { "name": "Camuflado", "code": "13574" },
+
   { "name": "Amêndoa", "code": "0335" },
   { "name": "Areia", "code": "0110" },
   { "name": "Areia Saint Tropez", "code": "0353" },
