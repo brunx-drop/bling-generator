@@ -190,5 +190,20 @@
   { "name": "Off White / Cinza Mescla", "code": "00030016" },
   { "name": "Preto / Verde Cipestre", "code": "000110048" },
   { "name": "Preto / Cinza Mescla", "code": "00010016" },
-  { "name": "Verde Cipestre / Cinza Mescla", "code": "100480016" }
+  { "name": "Verde Cipestre / Cinza Mescla", "code": "100480016" },
+
+  { "name": "Verde Cipreste", "code": "10048" },
+  { "name": "Branco / Verde Cipreste", "code": "000210048" },
+  { "name": "Azul Royal / Verde Cipreste", "code": "012610048" },
+  { "name": "Chumbo Cannes / Verde Cipreste", "code": "1004210048" },
+  { "name": "Amarelo Provençal / Verde Cipreste", "code": "1005110048" },
+  { "name": "Marrom Monte Carlo / Verde Cipreste", "code": "034810048" },
+  { "name": "Bege Costeiro / Verde Cipreste", "code": "035110048" },
+  { "name": "Marinho Profundo / Verde Cipreste", "code": "1004910048" },
+  { "name": "Vermelho Carmine / Verde Cipreste", "code": "1005010048" },
+  { "name": "Areia Saint Tropez / Verde Cipreste", "code": "035310048" },
+  { "name": "Vermelho / Verde Cipreste", "code": "001510048" },
+  { "name": "Off White / Verde Cipreste", "code": "000310048" },
+  { "name": "Preto / Verde Cipreste", "code": "000110048" },
+  { "name": "Verde Cipreste / Cinza Mescla", "code": "100480016" }
 ]
