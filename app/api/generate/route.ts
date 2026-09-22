@@ -639,7 +639,8 @@ export async function POST(req: Request) {
     const colorsPath = path.join(process.cwd(), "config/colors.json");
     const templatePath = path.join(
       process.cwd(),
-      "templates/PLANILHA PADRÃO BLING.xlsx"
+      "templates",
+      "template-bling.xlsx"
     );
 
     const colors = JSON.parse(fs.readFileSync(colorsPath, "utf8")) as Color[];
