@@ -1,5 +1,6 @@
 [
   { "name": "Amarelo Manteiga", "code": "0318" },
+  { "name": "Única", "code": "0029" },
   { "name": "Amarelo Mostarda", "code": "0010" },
   { "name": "Amarelo Primavera", "code": "0341" },
   { "name": "Amarelo Provençal", "code": "10051" },
@@ -190,5 +191,4 @@
   { "name": "Preto / Verde Cipestre", "code": "000110048" },
   { "name": "Preto / Cinza Mescla", "code": "00010016" },
   { "name": "Verde Cipestre / Cinza Mescla", "code": "100480016" },
-  { "name": "Única", "code": "0029" },
 ]
