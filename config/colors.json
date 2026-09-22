@@ -99,7 +99,6 @@
   { "name": "Vermelho", "code": "0015" },
   { "name": "Vermelho Carmine", "code": "10050" },
   { "name": "Vermelho Crepúsculo", "code": "0328" },
-
   { "name": "Branco / Azul Royal", "code": "00020126" },
   { "name": "Branco / Chumbo Cannes", "code": "000210042" },
   { "name": "Branco / Amarelo Provençal", "code": "000210051" },
@@ -191,6 +190,5 @@
   { "name": "Preto / Verde Cipestre", "code": "000110048" },
   { "name": "Preto / Cinza Mescla", "code": "00010016" },
   { "name": "Verde Cipestre / Cinza Mescla", "code": "100480016" }
-  { "name": "Única", "code": "0029" },
-  
+  { "name": "Única", "code": "0029" },  
 ]
